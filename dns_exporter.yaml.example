@@ -1,0 +1,21 @@
+---
+interval_seconds: 15
+http_bind_address: 127.0.0.1
+http_port: 5353
+log_level: info
+checks:
+  - servers:
+      - 9.9.9.9
+    domain: www.google.de
+    type: A
+    protocols:
+      - dot
+      - tcp
+      - udp
+  - servers:
+      - 1.1.1.1
+    domain: de
+    type: SOA
+    protocols:
+      - udp
+
