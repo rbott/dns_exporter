@@ -28,19 +28,27 @@ type Check struct {
 	Protocols []string `mapstructure:"protocols"`
 }
 
-var dnsRequestDuration = prometheus.NewHistogramVec(
+var dnsRequestDurationHist = prometheus.NewHistogramVec(
 	prometheus.HistogramOpts{
-		Name:    "dns_requests_duration_ms",
-		Help:    "Duration of DNS requests in milliseconds",
+		Name:    "dns_requests_duration_hist_ms",
+		Help:    "Duration of DNS requests in milliseconds (Histogram)",
 		Buckets: prometheus.LinearBuckets(10, 10, 10),
 	},
 	[]string{"server", "protocol", "domain", "type"},
 )
 
+var dnsRequestDurationGauge = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "dns_requests_duration_gauge_ms",
+		Help: "Duration of DNS requests in milliseconds (Gauge)",
+	},
+	[]string{"server", "protocol", "domain", "type"})
+
 var log = logrus.New()
 
 func init() {
-	prometheus.MustRegister(dnsRequestDuration)
+	prometheus.MustRegister(dnsRequestDurationHist)
+	prometheus.MustRegister(dnsRequestDurationGauge)
 }
 
 func doDnsQuery(server, domain string, resourceType string, netType string) time.Duration {
@@ -69,12 +77,18 @@ func doDnsQuery(server, domain string, resourceType string, netType string) time
 		return duration
 	}
 
-	dnsRequestDuration.With(prometheus.Labels{
+	dnsRequestDurationHist.With(prometheus.Labels{
 		"server":   server,
 		"protocol": netType,
 		"domain":   domain,
 		"type":     resourceType,
 	}).Observe(float64(duration.Milliseconds()))
+	dnsRequestDurationGauge.With(prometheus.Labels{
+		"server":   server,
+		"protocol": netType,
+		"domain":   domain,
+		"type":     resourceType,
+	}).Set(float64(duration.Milliseconds()))
 	return duration
 }
 
@@ -107,12 +121,18 @@ func doDotQuery(server, domain string, resourceType string) time.Duration {
 		return duration
 	}
 
-	dnsRequestDuration.With(prometheus.Labels{
+	dnsRequestDurationHist.With(prometheus.Labels{
 		"server":   server,
 		"protocol": "dot",
 		"domain":   domain,
 		"type":     resourceType,
 	}).Observe(float64(duration.Milliseconds()))
+	dnsRequestDurationGauge.With(prometheus.Labels{
+		"server":   server,
+		"protocol": "dot",
+		"domain":   domain,
+		"type":     resourceType,
+	}).Set(float64(duration.Milliseconds()))
 
 	return duration
 }
